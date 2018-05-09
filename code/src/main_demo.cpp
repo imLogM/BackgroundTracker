@@ -23,7 +23,7 @@ cv::Point g_botRight(0,0);
 cv::Point g_botRight_tmp(0,0);
 bool plot = false;
 bool g_trackerInitialized = false;
-ColorTracker * g_tracker = NULL;
+ColorTracker * g_tracker = NULL;        // ASMS跟踪器（颜色法），在背景重建完成前使用该跟踪器，重建完成后，使用背景法跟踪器
 
 
 static void onMouse( int event, int x, int y, int, void* param)
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     }
 #endif
 
-    // 1.声明跟踪器对象
+    // 1.声明跟踪器对象（背景法）
     background_alg b_tracker = background_alg(img.cols*resize_fac, img.rows*resize_fac, 1, resize_fac, 0.05);
     // 2.背景重建（更新）
     b_tracker.background_update(img_resize, Point2i(g_topLeft.x*resize_fac, g_topLeft.y*resize_fac),
