@@ -8,17 +8,17 @@
 #include <ctime>
 #include "background_alg.h"
 
-#define USE_VIDEO_FILE
+#define USE_VIDEO_FILE      // 选择使用摄像头还是视频文件
 
 using namespace cv;
 using namespace std;
 std::string videoPath;
-clock_t clockBegin = 0, clockEnd = 0;
+clock_t clockBegin = 0, clockEnd = 0;   // 记录算法运行时间
 //float resize_factor_color = 1;
-float resize_fac = 0.25;
-bool isBackReady = false;
+float resize_fac = 0.25;    // 为了加快算法速度，输入的图片/视频会先缩小
+bool isBackReady = false;   // 背景是否已经重建完毕
 
-cv::Point g_topLeft(0,0);
+cv::Point g_topLeft(0,0);   // 鼠标框选目标时鼠标指针的位置
 cv::Point g_botRight(0,0);
 cv::Point g_botRight_tmp(0,0);
 bool plot = false;
@@ -28,6 +28,9 @@ ColorTracker * g_tracker = NULL;
 
 static void onMouse( int event, int x, int y, int, void* param)
 {
+    /** 鼠标事件
+     *  鼠标框选目标时引发鼠标时间，记录框选的目标图像
+     **/
     cv::Mat img = ((cv::Mat *)param)->clone();
     if( event == cv::EVENT_LBUTTONDOWN && !g_trackerInitialized){
         std::cout << "DOWN " << std::endl;
@@ -59,12 +62,12 @@ int main(int argc, char **argv)
 {
     BBox * bb = NULL;
     cv::Mat img, img_resize;
-#ifndef USE_VIDEO_FILE
+#ifndef USE_VIDEO_FILE  // 如果使用摄像头，则开启摄像头
     int captureDevice = 0;
     if (argc > 1)
         captureDevice = atoi(argv[1]);
     cv::VideoCapture webcam = cv::VideoCapture(captureDevice);
-#else
+#else   // 如果使用视频文件
     if (argc > 1) {
         videoPath = argv[1];
     }
@@ -108,7 +111,9 @@ int main(int argc, char **argv)
     }
 #endif
 
+    // 1.声明跟踪器对象
     background_alg b_tracker = background_alg(img.cols*resize_fac, img.rows*resize_fac, 1, resize_fac, 0.05);
+    // 2.背景重建（更新）
     b_tracker.background_update(img_resize, Point2i(g_topLeft.x*resize_fac, g_topLeft.y*resize_fac),
                                             Point2i(g_botRight.x*resize_fac, g_botRight.y*resize_fac));
     for(;;){
@@ -120,6 +125,7 @@ int main(int argc, char **argv)
 
         if (g_trackerInitialized){
             clockBegin = clock();
+            // 3.若背景未重建完毕，则使用ASMS法跟踪，并重建背景
             if(!isBackReady){
                 bb = g_tracker->track(img);
                 colorResultRect = Rect(bb->x, bb->y, bb->width, bb->height);
@@ -127,7 +133,7 @@ int main(int argc, char **argv)
                                                         Point2i((bb->x+bb->width)*resize_fac, (bb->y+bb->height)*resize_fac));
                 isBackReady = b_tracker.background_isReady();
                 cv::rectangle(img, colorResultRect, Scalar(255, 0, 0), 3);
-            }else {
+            }else { // 4.若背景重建完毕，则使用背景法跟踪，同时也继续更新背景
                 backResultRect = b_tracker.object_detect(img_resize);
                 b_tracker.background_update(img_resize,
                                             Point2i(backResultRect.x, backResultRect.y),
@@ -138,6 +144,7 @@ int main(int argc, char **argv)
                                         Scalar(0, 255, 0), 3);
             }
             clockEnd = clock();
+            // 5.显示算法用时
             static int clock_cnt = 0;
             static int clock_sum = 0;
             clock_cnt++;
@@ -154,7 +161,7 @@ int main(int argc, char **argv)
 #else
         int c = waitKey(10);
 #endif
-        if((c & 255) == 27) { std::cout << "Exiting ..." << std::endl; break;}
+        if((c & 255) == 27) { std::cout << "Exiting ..." << std::endl; break;}  // esc键退出
     }
     return 0;
 }
