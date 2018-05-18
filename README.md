@@ -1,6 +1,6 @@
 # Background Tracker
 
-A tracker using background method for ARM's AI competition. See "技术报告.pdf" for more algorithmic details.
+A tracker improved from background method. it has good robustness in a static background. See "技术报告.pdf" for more algorithmic details.
 
 ## Environment
 * GCC
